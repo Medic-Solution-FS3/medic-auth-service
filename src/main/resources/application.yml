@@ -1,0 +1,128 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: medic-auth-service
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/db_users?useSSL=false&serverTimezone=America/Santiago&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:medic_user}
+    password: ${DB_PASSWORD:medic_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: America/Santiago
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/common
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        multiplier: 2
+
+# Swagger/OpenAPI disabled by default; enabled only in local profile
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+# JWT Configuration (RS256 — key pair generated in-memory on startup)
+jwt:
+  expiration: ${JWT_EXPIRATION:1800000}  # 30 minutes
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+  issuer: medic-auth-service
+
+# Outbox Relay Configuration
+outbox:
+  relay:
+    interval-ms: ${OUTBOX_RELAY_INTERVAL:5000}
+    batch-size: ${OUTBOX_RELAY_BATCH_SIZE:100}
+    max-retries: ${OUTBOX_RELAY_MAX_RETRIES:3}
+
+# Token Configuration
+auth:
+  token:
+    cleanup:
+      interval-ms: ${TOKEN_CLEANUP_INTERVAL_MS:3600000}
+    email-verification-expiry-hours: ${EMAIL_VERIFICATION_EXPIRY_HOURS:24}
+    password-reset-expiry-hours: ${PASSWORD_RESET_EXPIRY_HOURS:1}
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.medic.auth: ${LOG_LEVEL:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    org.springframework.amqp: ${LOG_LEVEL_AMQP:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} [%X{correlationId:-no-correlation-id}] [%X{userId:-anonymous}] - %msg%n"
+
+---
+# Local Profile (H2 for testing)
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:mem:db_users;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+logging:
+  level:
+    com.medic.auth: DEBUG

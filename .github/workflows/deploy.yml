@@ -34,5 +34,5 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster medic-cluster \
-            --service medic-auth-service \
+            --service auth-service \
             --force-new-deployment
